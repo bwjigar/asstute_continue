@@ -7,13 +7,17 @@ import API_BASE_URL from "./api";
 import querystring from "querystring";
 import { parseHTMLValue, parseXMLValue } from "./utils";
 import Papa from 'papaparse';
+import Loader from "react-js-loader";
 
 const App = () => {
   const [buttonClick, setButtonClick] = useState(false);
   const [allDataAPI, setAllDataAPI] = useState([]);
+  const [mainLoader, setMainLoader] = useState(false)
 
-  function matchAndCreateKeyValue(abcItem, prqItem) {
+   function matchAndCreateKeyValue(abcItem, prqItem) {
+
     const keyToMatch = abcItem.Supp_Col_Name;
+
     // Check if keyToMatch contains commas
     if (keyToMatch?.includes(',')) {
       const keys = keyToMatch?.split(',');
@@ -44,7 +48,7 @@ const App = () => {
     }
     return null;
   }
-  
+
   const callPostAPI = async (partyId, data, uploadType) => {
     return new Promise((resolve) => {
     const body = {
@@ -73,15 +77,18 @@ const App = () => {
       )
       .then(() => {
           resolve();
+          setMainLoader(false);
       })
       .catch(() => {
         console.log("error on catch");
         resolve();
+        setMainLoader(false);
       });
     })
   };
 
   const callAPI = async (apiFormDataAll) => {
+    setMainLoader(true);
     if (apiFormDataAll?.Upload_Type === 'API') {
     if (apiFormDataAll?.API_Method === "post") {
       if (apiFormDataAll?.API_Response === "json") {
@@ -324,74 +331,6 @@ const App = () => {
 
       return axios.get(url).then((res) => {
         if (apiFormDataAll?.Method_Type === "json") {
-          const domainName = "www.livetrade9.com";
-          const isMatching = checkDomainName(url, domainName);
-
-          if (isMatching) { 
-            const dataExcel = JSON.parse(res?.data);
-
-            return new Promise(async (resolve) => {
-              const result = dataExcel.map((prqItem) =>
-                apiFormDataAll.Supplier_Column_Mapping_List.reduce(
-                  (acc, abcItem) => {
-                    const matchedPair = matchAndCreateKeyValue(abcItem, prqItem);
-                    if (matchedPair !== null) {
-                      acc = { ...acc, ...matchedPair };
-                    }
-                    return acc;
-                  },
-                  {}
-                )
-              );
-              await callPostAPI(apiFormDataAll?.Party_Id, result);
-              resolve();
-            });
-          } else {
-          const data = res?.data?.rows;
-          const keys = res?.data?.keys;
-          const resultArray = [];
-
-          // Iterate through the data arrays
-          for (let i = 0; i < data?.length; i++) {
-            const rowData = data[i];
-            const entry = {};
-
-            // Iterate through the keys array
-            for (let j = 0; j < keys?.length; j++) {
-              const key = keys[j];
-              const value = rowData[j];
-              entry[key] = value;
-            }
-            resultArray.push(entry);
-          }
-
-          const properArray = res?.data?.list
-            ? res?.data?.list
-            : res?.data?.IMAGE_URL
-            ? resultArray
-            : res?.data?.data
-            ? res?.data?.data
-            : res?.data?.Result
-            ? res?.data?.Result
-            : res?.data;
-
-          return new Promise(async (resolve) => {
-            const result = properArray.map((prqItem) =>
-              apiFormDataAll.Supplier_Column_Mapping_List.reduce(
-                (acc, abcItem) => {
-                  const matchedPair = matchAndCreateKeyValue(abcItem, prqItem);
-                  if (matchedPair !== null) {
-                    acc = { ...acc, ...matchedPair };
-                  }
-                  return acc;
-                },
-                {}
-              )
-            );
-            await callPostAPI(apiFormDataAll?.Party_Id, result);
-            resolve();
-          });
-        }
         } else if (apiFormDataAll?.Method_Type === "html") {
           //Promising Start
           const rows = res?.data?.split("\n");
@@ -626,6 +565,35 @@ const App = () => {
               });
             });
           //Veni Diam End
+        }  else if (apiFormDataAll?.API_User === 'solar') {
+          // Sunrise api
+          axios.get(`${API_BASE_URL}/party/get_sunrise_stock`)
+            .then(async (res) => {
+            return new Promise(async (resolve) => {
+              const result = res?.data?.data.map((prqItem) =>
+                apiFormDataAll.Supplier_Column_Mapping_List.reduce(
+                  (acc, abcItem) => {
+                    const matchedPair = matchAndCreateKeyValue(
+                      abcItem,
+                      prqItem
+                    );
+                    if (matchedPair !== null) {
+                      acc = { ...acc, ...matchedPair };
+                    }
+                    return acc;
+                  },
+                  {}
+                )
+              );
+             await callPostAPI(apiFormDataAll?.Party_Id, result);
+              resolve();
+            });
+          })
+            .catch((error) => {
+              return new Promise(async (resolve) => {
+                resolve();
+              });
+            });
         } else {
           // Dharam creation
           return axios
@@ -761,6 +729,7 @@ const App = () => {
         apiFormDataAll.Supplier_Column_Mapping_List.reduce(
           (acc, abcItem) => {
             const matchedPair = matchAndCreateKeyValue(abcItem, prqItem);
+
             if (matchedPair !== null) {
               acc = { ...acc, ...matchedPair };
             }
@@ -769,7 +738,6 @@ const App = () => {
           {}
         )
         );
-
         await callPostAPI(apiFormDataAll?.Party_Id, result, apiFormDataAll?.Upload_Type);
             resolve();
           });
@@ -819,8 +787,22 @@ const App = () => {
   //   return () => clearInterval(intervalId);
   // }, []);
 
+
   return (
     <div className="App">
+      {
+        mainLoader && 
+<div style={{
+  display: 'flex', 
+  justifyContent: 'center', 
+  alignItems: 'center', 
+  position: 'fixed', 
+  backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+  height: '100vh', 
+  width: '100vw'
+  }}>
+    <Loader type="bubble-spin" bgColor={'blue'} size={100} />
+    </div>}
       <table>
         <tr>
           <th>Company</th>
