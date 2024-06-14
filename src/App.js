@@ -7,10 +7,12 @@ import API_BASE_URL from "./api";
 import querystring from "querystring";
 import { parseHTMLValue, parseXMLValue } from "./utils";
 import Papa from 'papaparse';
+import Loader from "react-js-loader";
 
 const App = () => {
   const [buttonClick, setButtonClick] = useState(false);
   const [allDataAPI, setAllDataAPI] = useState([]);
+  const [mainLoader, setMainLoader] = useState(false);
 
   function matchAndCreateKeyValue(abcItem, prqItem) {
     const keyToMatch = abcItem.Supp_Col_Name;
@@ -73,15 +75,18 @@ const App = () => {
       )
       .then(() => {
           resolve();
+          setMainLoader(false);
       })
       .catch(() => {
         console.log("error on catch");
         resolve();
+        setMainLoader(false);
       });
     })
   };
 
   const callAPI = async (apiFormDataAll) => {
+    setMainLoader(true);
     if (apiFormDataAll?.Upload_Type === 'API') {
     if (apiFormDataAll?.API_Method === "post") {
       if (apiFormDataAll?.API_Response === "json") {
@@ -821,6 +826,19 @@ const App = () => {
 
   return (
     <div className="App">
+       {
+        mainLoader && 
+<div style={{
+  display: 'flex', 
+  justifyContent: 'center', 
+  alignItems: 'center', 
+  position: 'fixed', 
+  backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+  height: '100vh', 
+  width: '100vw'
+  }}>
+    <Loader type="bubble-spin" bgColor={'blue'} size={100} />
+    </div>}
       <table>
         <tr>
           <th>Company</th>
